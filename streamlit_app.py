@@ -1,6 +1,11 @@
 import streamlit as st
+import pandas as pd
 
-st.title("🎈 My new app")
-st.write(
-    "Let's start building! For help and inspiration, head over to [docs.streamlit.io](https://docs.streamlit.io/)."
-)
+home_page = st.Page("home_page.py", title="Home", icon="🏠")
+about_page = st.Page("about_page.py", title="About", icon="📚")
+contact_page = st.Page("contact_page.py", title="Contact Us", icon="📞")
+
+pg = st.navigation([home_page, about_page, contact_page])
+
+pg.run()
+
