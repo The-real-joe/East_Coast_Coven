@@ -3,7 +3,8 @@ import pandas as pd
 import sqlite3
 import os
 from datetime import datetime
-
+from better_profanity import profanity
+from textblob import TextBlob
 
 st.markdown("# Forum")
 st.sidebar.markdown("# Forum")
@@ -93,6 +94,24 @@ else:
         st.session_state.current_user = None
         st.session_state.show_login_form = False
 
+# Initialize the profanity filter
+profanity.load_censor_words()
+
+# Function to check for banned words
+def contains_banned_words(message):
+    return profanity.contains_profanity(message)
+
+# Function to check for spam
+def is_spam(message):
+    spam_keywords = ["free money", "click here", "win now", "buy now", "subscribe"]
+    if any(keyword in message.lower() for keyword in spam_keywords):
+        return True
+    # Optional: Use TextBlob to analyze sentiment or patterns
+    blob = TextBlob(message)
+    if blob.sentiment.polarity < -0.5:  # Example: Negative sentiment as spam
+        return True
+    return False
+
 # Form for new message
 with st.form("new_message", clear_on_submit=True):
     user_name = st.text_input("Your Name")
@@ -100,19 +119,24 @@ with st.form("new_message", clear_on_submit=True):
     submitted = st.form_submit_button("Post Message")
 
     if submitted and user_name and message:
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        # Save message to database
-        conn.execute(
-            "INSERT INTO forum_messages (user_id, message, timestamp) VALUES (?, ?, ?)",
-            (1, message, timestamp)  # Assuming user_id is 1 for now
-        )
-        conn.commit()
-        # Update session state
-        st.session_state.messages.insert(0, {
-            "name": user_name,
-            "message": message,
-            "timestamp": timestamp
-        })
+        if contains_banned_words(message):
+            st.error("Your message contains inappropriate language and cannot be posted.")
+        elif is_spam(message):
+            st.error("Your message appears to be spam and cannot be posted.")
+        else:
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            # Save message to database
+            conn.execute(
+                "INSERT INTO forum_messages (user_id, message, timestamp) VALUES (?, ?, ?)",
+                (1, message, timestamp)  # Assuming user_id is 1 for now
+            )
+            conn.commit()
+            # Update session state
+            st.session_state.messages.insert(0, {
+                "name": user_name,
+                "message": message,
+                "timestamp": timestamp
+            })
 
 # Display messages
 st.subheader("Messages")
